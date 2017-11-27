@@ -304,7 +304,7 @@ uint32_t scheduled_actor::request_timeout(const duration& d) {
     enqueue(ctrl(), invalid_message_id, std::move(msg), context());
   else
     system().scheduler().delayed_send(d, ctrl(), strong_actor_ptr(ctrl()),
-                                      message_id::make(), std::move(msg));
+                                      make_message_id(), std::move(msg));
   return result;
 }
 

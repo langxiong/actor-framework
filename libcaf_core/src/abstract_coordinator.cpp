@@ -111,11 +111,11 @@ public:
     while (running) {
       if (messages.empty()) {
         // use regular receive as long as we don't have a pending timeout
-        receive_impl(rc, message_id::make(), bhvr);
+        receive_impl(rc, make_message_id(), bhvr);
       } else {
         auto tout = messages.begin()->first;
         if (await_data(tout)) {
-          receive_impl(rc, message_id::make(), bhvr);
+          receive_impl(rc, make_message_id(), bhvr);
         } else {
           auto it = messages.begin();
           while (it != messages.end() && (it->first) <= tout) {

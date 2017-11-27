@@ -16,8 +16,8 @@
  * http://www.boost.org/LICENSE_1_0.txt.                                      *
  ******************************************************************************/
 
-#ifndef CAF_ABSTRACT_EVENT_BASED_ACTOR_HPP
-#define CAF_ABSTRACT_EVENT_BASED_ACTOR_HPP
+#ifndef CAF_SCHEDULED_ACTOR_HPP
+#define CAF_SCHEDULED_ACTOR_HPP
 
 #include "caf/config.hpp"
 
@@ -791,7 +791,7 @@ public:
     stream<T> token{sid};
     auto ys = std::tuple_cat(std::forward_as_tuple(token), std::move(xs));;
     next->enqueue(make_mailbox_element(
-                    mptr->sender, ignore_mid ? message_id::make() : mptr->mid,
+                    mptr->sender, ignore_mid ? make_message_id() : mptr->mid,
                     std::move(stages),
                     make<stream_msg::open>(
                       sid, address(), make_message_from_tuple(std::move(ys)),
@@ -881,4 +881,4 @@ protected:
 
 } // namespace caf
 
-#endif // CAF_ABSTRACT_EVENT_BASED_ACTOR_HPP
+#endif // CAF_SCHEDULED_ACTOR_HPP

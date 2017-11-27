@@ -77,7 +77,7 @@ public:
                      >::valid,
                   "this actor does not accept the response message");
     if (dest)
-      dest->eq_impl(message_id::make(P), dptr()->ctrl(),
+      dest->eq_impl(make_message_id(P), dptr()->ctrl(),
                     dptr()->context(), std::forward<Ts>(xs)...);
   }
 
@@ -96,7 +96,7 @@ public:
                   >::valid,
                   "receiver does not accept given message");
     if (dest)
-      dest->eq_impl(message_id::make(P), nullptr,
+      dest->eq_impl(make_message_id(P), nullptr,
                     dptr()->context(), std::forward<Ts>(xs)...);
   }
 
@@ -139,7 +139,7 @@ public:
     if (dest)
       dptr()->system().scheduler().delayed_send(
         rtime, dptr()->ctrl(), actor_cast<strong_actor_ptr>(dest),
-        message_id::make(P), make_message(std::forward<Ts>(xs)...));
+        make_message_id(P), make_message(std::forward<Ts>(xs)...));
   }
 
   template <message_priority P = message_priority::normal,
@@ -166,7 +166,7 @@ public:
                   "receiver does not accept given message");
     if (dest)
       dptr()->system().scheduler().delayed_send(
-        rtime, nullptr, actor_cast<strong_actor_ptr>(dest), message_id::make(P),
+        rtime, nullptr, actor_cast<strong_actor_ptr>(dest), make_message_id(P),
         make_message(std::forward<Ts>(xs)...));
   }
 
