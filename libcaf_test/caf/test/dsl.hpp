@@ -465,18 +465,29 @@ public:
   }
 };
 
-template <class Config = caf::actor_system_config>
+template <class Config = caf::actor_system_config, class Clock = caf::unit_t>
 struct test_coordinator_fixture {
   using scheduler_type = caf::scheduler::test_coordinator;
 
   Config cfg;
   caf::actor_system sys;
+  Clock clock;
   caf::scoped_actor self;
   scheduler_type& sched;
 
+  template <class T>
+  static caf::detail::simulated_clock* get_clock(T& ref) {
+    return &ref;
+  }
+
+  static caf::detail::simulated_clock* get_clock(caf::unit_t&) {
+    return nullptr;
+  }
+
   test_coordinator_fixture()
       : sys(cfg.parse(caf::test::engine::argc(), caf::test::engine::argv())
-               .set("scheduler.policy", caf::atom("testing"))),
+               .set("scheduler.policy", caf::atom("testing")),
+            get_clock(clock)),
         self(sys),
         sched(dynamic_cast<scheduler_type&>(sys.scheduler())) {
     // nop

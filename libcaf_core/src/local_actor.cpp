@@ -56,6 +56,20 @@ void local_actor::on_destroy() {
   }
 }
 
+local_actor::clock_type::time_point local_actor::now() const noexcept {
+  if (CAF_UNLIKELY(getf(has_simulated_time_flag)))
+    return system().clock().now();
+  return clock_type::now();
+}
+
+local_actor::clock_type::duration
+local_actor::difference(atom_value measurement, clock_type::time_point t0,
+                        clock_type::time_point t1) {
+  if (CAF_UNLIKELY(getf(has_simulated_time_flag)))
+    return system().clock().difference(measurement, t0, t1);
+  return t1 - t0;
+}
+
 void local_actor::request_response_timeout(const duration& d, message_id mid) {
   CAF_LOG_TRACE(CAF_ARG(d) << CAF_ARG(mid));
   if (!d.valid())

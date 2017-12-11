@@ -202,7 +202,8 @@ actor_system::module::~module() {
   // nop
 }
 
-actor_system::actor_system(actor_system_config& cfg)
+actor_system::actor_system(actor_system_config& cfg,
+                           detail::simulated_clock* clock)
     : ids_(0),
       types_(*this),
       logger_(new caf::logger(*this), false),
@@ -212,7 +213,8 @@ actor_system::actor_system(actor_system_config& cfg)
       await_actors_before_shutdown_(true),
       detached(0),
       cfg_(cfg),
-      logger_dtor_done_(false) {
+      logger_dtor_done_(false),
+      clock_(clock) {
   CAF_SET_LOGGER_SYS(this);
   for (auto& hook : cfg.thread_hooks_)
     hook->init(*this);
@@ -224,8 +226,10 @@ actor_system::actor_system(actor_system_config& cfg)
   using test = scheduler::test_coordinator;
   using share = scheduler::coordinator<policy::work_sharing>;
   using steal = scheduler::coordinator<policy::work_stealing>;
-  using profiled_share = scheduler::profiled_coordinator<policy::profiled<policy::work_sharing>>;
-  using profiled_steal = scheduler::profiled_coordinator<policy::profiled<policy::work_stealing>>;
+  using profiled_share =
+    scheduler::profiled_coordinator<policy::profiled<policy::work_sharing>>;
+  using profiled_steal =
+    scheduler::profiled_coordinator<policy::profiled<policy::work_stealing>>;
   // set scheduler only if not explicitly loaded by user
   if (!sched) {
     enum sched_conf {
@@ -426,6 +430,11 @@ void actor_system::thread_started() {
 void actor_system::thread_terminates() {
   for (auto& hook : cfg_.thread_hooks_)
     hook->thread_terminates();
+}
+
+detail::simulated_clock& actor_system::clock() {
+  CAF_ASSERT(clock_ != nullptr);
+  return *clock_;
 }
 
 expected<strong_actor_ptr>

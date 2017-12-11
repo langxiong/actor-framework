@@ -86,6 +86,7 @@ set (LIBCAF_CORE_SRCS
      src/sequencer.cpp
      src/serializer.cpp
      src/shared_spinlock.cpp
+     src/simulated_clock.cpp
      src/skip.cpp
      src/splitter.cpp
      src/stream.cpp
