@@ -33,6 +33,8 @@
 #include "caf/response_handle.hpp"
 #include "caf/response_type.hpp"
 
+#include "caf/scheduler/abstract_coordinator.hpp"
+
 namespace caf {
 namespace mixin {
 
