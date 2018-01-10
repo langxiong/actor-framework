@@ -34,9 +34,10 @@
 
 namespace caf {
 
-stream_manager::stream_manager(local_actor* selfptr)
+stream_manager::stream_manager(local_actor* selfptr, stream_priority prio)
     : self_(selfptr),
-      pending_handshakes_(0) {
+      pending_handshakes_(0),
+      priority_(prio) {
   // nop
 }
 
@@ -107,21 +108,20 @@ bool stream_manager::congested() const {
 void stream_manager::send_handshake(strong_actor_ptr dest, stream_slot slot,
                                     strong_actor_ptr client,
                                     mailbox_element::forwarding_stack fwd_stack,
-                                    message_id mid, stream_priority prio) {
+                                    message_id mid) {
   CAF_ASSERT(dest != nullptr);
   ++pending_handshakes_;
   dest->enqueue(
     make_mailbox_element(
       std::move(client), mid, std::move(fwd_stack),
-      open_stream_msg{slot, make_handshake(), self_->ctrl(), dest, prio}),
+      open_stream_msg{slot, make_handshake(), self_->ctrl(), dest, priority_}),
     self_->context());
 }
 
-void stream_manager::send_handshake(strong_actor_ptr dest, stream_slot slot,
-                                    stream_priority prio) {
+void stream_manager::send_handshake(strong_actor_ptr dest, stream_slot slot) {
   mailbox_element::forwarding_stack fwd_stack;
   send_handshake(std::move(dest), slot, nullptr, std::move(fwd_stack),
-                 make_message_id(), prio);
+                 make_message_id());
 }
 
 bool stream_manager::generate_messages() {

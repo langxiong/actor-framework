@@ -56,6 +56,10 @@ public:
     delegate(x);
   }
 
+  void operator()(stream_manager_ptr& ptr) override {
+    self_->connect_pipeline(std::move(ptr));
+  }
+
 private:
   void deliver(response_promise& rp, error& x) {
     CAF_LOG_DEBUG("report error back to requesting actor");

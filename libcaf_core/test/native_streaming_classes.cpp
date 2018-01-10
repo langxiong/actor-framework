@@ -99,7 +99,7 @@ struct print_with_comma_t {
   }
 
   template <class T>
-  std::ostream& operator()(std::ostream& out, const logger::arg_wrapper<T>& x) {
+  std::ostream& operator()(std::ostream& out, const detail::arg_wrapper<T>& x) {
     if (!first)
       out << ", ";
     else
@@ -261,7 +261,7 @@ public:
       int sentinel_;
     };
     auto ptr = detail::make_stream_source<driver>(this, num_messages);
-    ptr->send_handshake(ref.ctrl(), slot, stream_priority::normal);
+    ptr->send_handshake(ref.ctrl(), slot);
     ptr->generate_messages();
     pending_managers_.emplace(slot, std::move(ptr));
   }
@@ -288,7 +288,7 @@ public:
       vector<int>* log_;
     };
     forwarder = detail::make_stream_stage<driver>(this, &data);
-    forwarder->send_handshake(ref.ctrl(), slot, stream_priority::normal);
+    forwarder->send_handshake(ref.ctrl(), slot);
     pending_managers_.emplace(slot, forwarder);
   }
 
@@ -483,8 +483,6 @@ struct msg_visitor {
     auto& dm = x.content().get_mutable_as<downstream_msg>(0);
     auto f = detail::make_overload(
       [&](downstream_msg::batch& y) {
-        TRACE(self->name(), batch, CAF_ARG2("size", y.xs_size),
-              CAF_ARG2("remaining_credit", inptr->assigned_credit - y.xs_size));
         inptr->handle(y);
         if (inptr->mgr->done()) {
           CAF_MESSAGE(self->name()

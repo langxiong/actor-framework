@@ -416,6 +416,8 @@ public:
 
   bool cleanup(error&& fail_state, execution_unit* host) override;
 
+  void connect_pipeline(stream_manager_ptr);
+
   /// @endcond
 
 private:

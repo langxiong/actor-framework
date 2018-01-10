@@ -285,6 +285,10 @@ void blocking_actor::varargs_tup_receive(receive_cond& rcc, message_id mid,
   }
 }
 
+void blocking_actor::connect_pipeline(stream_manager_ptr) {
+  CAF_LOG_ERROR("blocking_actor::connect_pipeline called");
+}
+
 size_t blocking_actor::attach_functor(const actor& x) {
   return attach_functor(actor_cast<strong_actor_ptr>(x));
 }

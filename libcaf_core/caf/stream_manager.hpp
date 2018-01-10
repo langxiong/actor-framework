@@ -36,7 +36,8 @@ namespace caf {
 /// @relates stream_msg
 class stream_manager : public ref_counted {
 public:
-  stream_manager(local_actor* selfptr);
+  stream_manager(local_actor* selfptr,
+                 stream_priority prio = stream_priority::normal);
 
   ~stream_manager() override;
 
@@ -96,12 +97,11 @@ public:
   virtual void send_handshake(strong_actor_ptr dest, stream_slot slot,
                               strong_actor_ptr stream_origin,
                               mailbox_element::forwarding_stack fwd_stack,
-                              message_id handshake_mid, stream_priority prio);
+                              message_id handshake_mid);
 
   /// Sends a handshake to `dest`.
   /// @pre `dest != nullptr`
-  void send_handshake(strong_actor_ptr dest, stream_slot slot,
-                      stream_priority prio);
+  void send_handshake(strong_actor_ptr dest, stream_slot slot);
 
   // -- implementation hooks for sources ---------------------------------------
 
@@ -170,6 +170,9 @@ protected:
 
   /// Keeps track of pending handshakes.
   long pending_handshakes_;
+
+  /// Configures the importance of outgoing traffic.
+  stream_priority priority_;
 };
 
 /// A reference counting pointer to a `stream_manager`.

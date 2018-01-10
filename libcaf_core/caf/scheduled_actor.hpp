@@ -141,7 +141,8 @@ public:
   using upstream_queue = intrusive::drr_queue<policy::upstream_messages>;
 
   /// Stores downstream messages.
-  using downstream_queue = intrusive::drr_queue<policy::downstream_messages>;
+  using downstream_queue =
+    intrusive::wdrr_dynamic_multiplexed_queue<policy::downstream_messages>;
 
   /// Configures the FIFO inbox with four nested queues:
   ///
@@ -165,6 +166,10 @@ public:
                                               downstream_queue, urgent_queue>;
 
     static constexpr size_t default_queue_index = 0;
+
+    static constexpr size_t upstream_queue_index = 1;
+
+    static constexpr size_t downstream_queue_index = 2;
 
     static constexpr size_t urgent_queue_index = 3;
   };
@@ -214,8 +219,10 @@ public:
                                       mailbox_element&);
 
     /// Consumes downstream messages.
-    intrusive::task_result operator()(size_t, downstream_queue&,
-                                      mailbox_element&);
+    intrusive::task_result
+    operator()(size_t, downstream_queue&, stream_slot slot,
+               policy::downstream_messages::nested_queue_type&,
+               mailbox_element&);
 
     // Dispatches asynchronous messages with high and normal priority to the
     // same handler.
@@ -403,20 +410,17 @@ public:
   template <class Driver,
             class Scatterer = broadcast_scatterer<typename Driver::output_type>,
             class... Ts>
-  typename Driver::annotated_stream_type make_source(Ts&&... xs) {
-    auto slot = next_slot();
+  typename Driver::output_stream_type make_source(Ts&&... xs) {
     auto ptr = detail::make_stream_source<Driver, Scatterer>(
       this, std::forward<Ts>(xs)...);
-    ptr->generate_messages();
-    pending_stream_managers_.emplace(slot, ptr);
-    return {slot, std::move(ptr)};
+    return {0, std::move(ptr)};
   }
 
   template <class... Ts, class Init, class Pull, class Done,
             class Scatterer =
               broadcast_scatterer<typename stream_source_trait_t<Pull>::output>,
             class Trait = stream_source_trait_t<Pull>>
-  annotated_stream<typename Trait::output, detail::decay_t<Ts>...>
+  output_stream<typename Trait::output, detail::decay_t<Ts>...>
   make_source(std::tuple<Ts...> xs, Init init, Pull pull, Done done,
               policy::arg<Scatterer> = {}) {
     using tuple_type = std::tuple<detail::decay_t<Ts>...>;
@@ -460,7 +464,7 @@ public:
     `stream_manager`. template <class Handle, class... Ts, class Init, class
     Getter, class ClosedPredicate, class ResHandler, class Scatterer =
     broadcast_scatterer< typename stream_source_trait_t<Getter>::output>>
-    annotated_stream<typename stream_source_trait_t<Getter>::output, Ts...>
+    output_stream<typename stream_source_trait_t<Getter>::output, Ts...>
     make_source(const Handle& dest, std::tuple<Ts...> xs, Init init,
                 Getter getter, ClosedPredicate pred, ResHandler res_handler,
                 policy::arg<Scatterer> scatterer_type = {}) {
@@ -531,7 +535,7 @@ public:
     /// @returns A stream object with a pointer to the generated
     `stream_manager`. template <class Init, class... Ts, class Getter, class
     ClosedPredicate, class Scatterer = broadcast_scatterer< typename
-    stream_source_trait_t<Getter>::output>> annotated_stream<typename
+    stream_source_trait_t<Getter>::output>> output_stream<typename
     stream_source_trait_t<Getter>::output, Ts...> make_source(std::tuple<Ts...>
     xs, Init init, Getter getter, ClosedPredicate pred, policy::arg<Scatterer>
     scatterer_type = {}) { CAF_IGNORE_UNUSED(scatterer_type); using type =
@@ -598,7 +602,7 @@ public:
     `stream_manager`. template <class In, class... Ts, class Init, class Fun,
     class Cleanup, class Gatherer = random_gatherer, class Scatterer =
                 broadcast_scatterer<typename stream_stage_trait_t<Fun>::output>>
-    annotated_stream<typename stream_stage_trait_t<Fun>::output, Ts...>
+    output_stream<typename stream_stage_trait_t<Fun>::output, Ts...>
     make_stage(const stream<In>& in, std::tuple<Ts...> xs, Init init, Fun fun,
                Cleanup cleanup, policy::arg<Gatherer, Scatterer> policies = {})
     { CAF_IGNORE_UNUSED(policies); CAF_ASSERT(current_mailbox_element() !=
@@ -721,6 +725,12 @@ public:
 
   */
   /// @cond PRIVATE
+
+  /// Sends a stream handshake to the next actor in the pipeline, i.e., the
+  /// next actor in the current forwarding stack.
+  /// @private
+  void connect_pipeline(stream_manager_ptr mgr);
+
 
   // -- timeout management -----------------------------------------------------
 
@@ -978,7 +988,10 @@ protected:
       swap(g, f);
   }
 
-  //bool handle_stream_msg(mailbox_element& x, behavior* active_behavior);
+  // -- stream processing ------------------------------------------------------
+
+  /// @pre `x.content().match_elements<open_stream_msg>()`
+  invoke_message_result handle_open_stream_msg(mailbox_element& x);
 
   // -- member variables -------------------------------------------------------
 
