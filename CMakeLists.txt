@@ -138,8 +138,9 @@ endif()
 #                        respect environment variables                         #
 ################################################################################
 
-set(LDFLAGS "$ENV{LDFLAGS}")
-
+# libraries to link the binary with passed to target_link_libraries()
+# known as LLIBS to scons
+set(PLATFORM_LINKLIBS "")
 ################################################################################
 #                              get version of CAF                              #
 ################################################################################
@@ -322,16 +323,17 @@ if(MINGW)
   add_definitions(-D_WIN32_WINNT=0x0600)
   add_definitions(-DWIN32)
   include(GenerateExportHeader)
-  set(LDFLAGS "${LDFLAGS} ws2_32 -liphlpapi -lpsapi")
+  list(APPEND PLATFORM_LINKLIBS
+      -lws2_32 -liphlpapi -lpsapi)
   # build static to avoid runtime dependencies to GCC libraries
   set(EXTRA_FLAGS "${EXTRA_FLAGS} -static")
+elseif(MSVC)
+  list(APPEND PLATFORM_LINKLIBS
+      ws2_32 iphlpapi psapi)
 elseif(CYGWIN)
   set(EXTRA_FLAGS "${EXTRA_FLAGS} -U__STRICT_ANSI__")
 else()
   set(EXTRA_FLAGS "${EXTRA_FLAGS} -fPIC")
-endif()
-if (WIN32)
-  set(LDFLAGS "${LDFLAGS} ws2_32 iphlpapi")
 endif()
 # iOS support
 if(CAF_OSX_SYSROOT)
@@ -364,8 +366,12 @@ endif()
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
-# needed by subprojects
-set(LDFLAGS ${LDFLAGS} ${CMAKE_LD_LIBS})
+
+if(CMAKE_DL_LIBS)
+	list(APPEND PLATFORM_LINKLIBS ${CMAKE_DL_LIBS})
+endif()
+
+cmake_policy(SET CMP0004 OLD)
 
 ################################################################################
 #                       configure build_config.hpp header                      #
@@ -397,7 +403,7 @@ if(CAF_USE_ASIO)
   if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(LD_DIRS ${LD_DIRS} ${Boost_LIBRARIES})
-    set(LDFLAGS ${LDFLAGS} ${Boost_SYSTEM_LIBRARY})
+    list(APPEND PLATFORM_LINKLIBS ${Boost_SYSTEM_LIBRARY})
     set(CAF_USE_ASIO_INT 1)
   else()
     set(CAF_USE_ASIO no)
@@ -617,7 +623,7 @@ if(NOT CAF_NO_UNIT_TESTS)
                  libcaf_test/caf/test/unit_test_impl.hpp
                  ${CAF_ALL_UNIT_TESTS})
   target_link_libraries(caf-test
-                        ${LDFLAGS}
+                        ${PLATFORM_LINKLIBS}
                         ${CAF_LIBRARIES}
                         ${PTHREAD_LIBRARIES})
   add_custom_target(all_unit_tests)
@@ -801,7 +807,7 @@ if(NOT CAF_NO_SUMMARY)
         "\n"
         "\nCXX:                   ${CMAKE_CXX_COMPILER}"
         "\nCXXFLAGS:              ${ALL_CXX_FLAGS}"
-        "\nLDFLAGS:               ${LDFLAGS}"
+        "\nPLATFORM_LINKLIBS:      ${PLATFORM_LINKLIBS}"
         "\n"
         "\nSource directory:      ${CMAKE_CURRENT_SOURCE_DIR}"
         "\nBuild directory:       ${CMAKE_CURRENT_BINARY_DIR}"

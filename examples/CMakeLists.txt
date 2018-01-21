@@ -5,19 +5,12 @@ add_custom_target(all_examples)
 
 include_directories(${LIBCAF_INCLUDE_DIRS})
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Window")
-  set(WSLIB -lws2_32)
-else ()
-  set(WSLIB)
-endif()
-
 macro(add folder name)
   add_executable(${name} ${folder}/${name}.cpp ${ARGN})
   target_link_libraries(${name}
-                        ${LD_FLAGS}
                         ${CAF_LIBRARIES}
                         ${PTHREAD_LIBRARIES}
-                        ${WSLIB})
+                        ${PLATFORM_LINKLIBS})
   install(FILES ${folder}/${name}.cpp DESTINATION share/caf/examples/${folder})
   add_dependencies(${name} all_examples)
 endmacro()
